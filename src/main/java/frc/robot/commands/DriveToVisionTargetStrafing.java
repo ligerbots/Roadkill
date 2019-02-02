@@ -15,7 +15,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class DriveToVisionTargetStrafing extends Command {
   enum Phase {
-    STRAFE_TO_ANGLE, DRIVE
+    TURN_TO_ANGLE, STRAFE_TO_ANGLE, DRIVE
   }
   double[] empty = new double[] {0.0,0.0,0.0,0.0,0.0,0.0};
 
@@ -48,13 +48,37 @@ public class DriveToVisionTargetStrafing extends Command {
     visioninfo = SmartDashboard.getNumberArray("vision/target_info", empty);
     angleOffset = visioninfo[4] * (180/Math.PI);
     System.out.println("Angle: " + angleOffset);
-
-    if (angleOffset > RobotMap.AUTO_TURN_ACCURACY_THRESHOLD) {
-      Robot.Drivetrain.alldrive(0, 0, 0.5);
-      System.out.println("offset below threshold");
-    } else if (angleOffset < -RobotMap.AUTO_TURN_ACCURACY_THRESHOLD) {
-      Robot.Drivetrain.alldrive(0, 0, -0.5);
-      System.out.println("offset above threshold");
+    
+    switch (currentPhase){
+      case TURN_TO_ANGLE:
+      if (currentOffset > RobotMap.AUTO_TURN_ACCURACY_THRESHOLD) {
+        Robot.Drivetrain.alldrive(0, -0.5, 0);
+        break;
+      }else if (currentOffset < RobotMap.AUTO_TURN_ACCURACY_THRESHOLD){
+        Robot.Drivetrain.alldrive(0, 0.5, 0);
+        break;
+      }
+      currentPhase = Phase.STRAFE_TO_ANGLE;
+      break;
+      case STRAFE_TO_ANGLE:
+      if (angleOffset > RobotMap.AUTO_TURN_ACCURACY_THRESHOLD) {
+        Robot.Drivetrain.alldrive(0, 0, 0.5);
+        System.out.println("offset below threshold");
+        break;
+      } else if (angleOffset < -RobotMap.AUTO_TURN_ACCURACY_THRESHOLD) {
+        Robot.Drivetrain.alldrive(0, 0, -0.5);
+        System.out.println("offset above threshold");
+        break;
+      }
+      currentPhase = Phase.DRIVE;
+      break;
+      case DRIVE:
+      if (visioninfo[3] < RobotMap.AUTO_DRIVE_DISTANCE_THRESHOLD){
+        Robot.Drivetrain.alldrive(0.5, 0, 0);
+        break;
+      }
+      finished = true;
+      break;
     }
 
     /*visioninfo = SmartDashboard.getNumberArray("vision/target_info", empty);

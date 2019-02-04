@@ -26,7 +26,7 @@ public class DriveToVisionTargetStrafing extends Command {
   double targetAngle;
   double currentOffset;
   double currentDist;
-  Phase currentPhase = Phase.STRAFE_TO_ANGLE;
+  Phase currentPhase = Phase.TURN_TO_ANGLE;
   boolean finished;
   public DriveToVisionTargetStrafing() {
     // Use requires() here to declare subsystem dependencies
@@ -51,34 +51,33 @@ public class DriveToVisionTargetStrafing extends Command {
     
     switch (currentPhase){
       case TURN_TO_ANGLE:
-      if (currentOffset > RobotMap.AUTO_TURN_ACCURACY_THRESHOLD) {
-        Robot.Drivetrain.alldrive(0, -0.5, 0);
+        if (Math.abs(angleOffset) > RobotMap.AUTO_TURN_ACCURACY_THRESHOLD) {
+          Robot.Drivetrain.alldrive(0, -Math.signum(angleOffset) * Robot.Drivetrain.turnSpeedCalc(angleOffset), 0);
+          break;
+        }
+        currentPhase = Phase.DRIVE;
         break;
-      }else if (currentOffset < RobotMap.AUTO_TURN_ACCURACY_THRESHOLD){
-        Robot.Drivetrain.alldrive(0, 0.5, 0);
-        break;
-      }
-      currentPhase = Phase.STRAFE_TO_ANGLE;
-      break;
       case STRAFE_TO_ANGLE:
-      if (angleOffset > RobotMap.AUTO_TURN_ACCURACY_THRESHOLD) {
-        Robot.Drivetrain.alldrive(0, 0, 0.5);
-        System.out.println("offset below threshold");
+        if (angleOffset > RobotMap.AUTO_TURN_ACCURACY_THRESHOLD) {
+          Robot.Drivetrain.alldrive(0, 0, 0.5);
+          System.out.println("offset below threshold");
+          break;
+        } else if (angleOffset < -RobotMap.AUTO_TURN_ACCURACY_THRESHOLD) {
+          Robot.Drivetrain.alldrive(0, 0, -0.5);
+          System.out.println("offset above threshold");
+          break;
+        }
+        finished = true;
         break;
-      } else if (angleOffset < -RobotMap.AUTO_TURN_ACCURACY_THRESHOLD) {
-        Robot.Drivetrain.alldrive(0, 0, -0.5);
-        System.out.println("offset above threshold");
-        break;
-      }
-      currentPhase = Phase.DRIVE;
-      break;
       case DRIVE:
-      if (visioninfo[3] < RobotMap.AUTO_DRIVE_DISTANCE_THRESHOLD){
-        Robot.Drivetrain.alldrive(0.5, 0, 0);
+        if (visioninfo[3] < RobotMap.AUTO_DRIVE_DISTANCE_THRESHOLD){
+          Robot.Drivetrain.alldrive(Robot.Drivetrain.driveSpeedCalc(visioninfo[3]), 0, 0);
+          break;
+        }
+        currentPhase = Phase.STRAFE_TO_ANGLE;
         break;
-      }
-      finished = true;
-      break;
+      default:
+        break;
     }
 
     /*visioninfo = SmartDashboard.getNumberArray("vision/target_info", empty);

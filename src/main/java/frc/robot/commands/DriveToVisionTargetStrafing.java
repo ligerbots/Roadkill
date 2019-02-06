@@ -19,16 +19,15 @@ public class DriveToVisionTargetStrafing extends Command {
     TURN_TO_ANGLE, STRAFE_TO_ANGLE, DRIVE, FINAL_FACE_TARGET
   }
 
-  double[] empty = new double[] {0.0,0.0,0.0,0.0,0.0,0.0};
-  double startAngle;
-  double[] visioninfo;
-  double targetPos;
-  double angleOffset;
-  double targetAngle;
-  double currentOffset;
-  double currentDist;
-  Phase currentPhase;
-  boolean finished;
+  double[] visionInfo;                                          //holds info recieved from the Odroid through NT
+  double[] empty = new double[] {0.0,0.0,0.0,0.0,0.0,0.0};      //empty array of values to be used for default value when fetching
+  double[] previousInfo;
+
+  double distance;                           //total distance (raw from NT) from robot to target
+  double angle;                              //angle from robot to target in degrees (NT is initially in radians)
+  double overallAngle;                       //angle to the target in terms of the robot's yaw
+  Phase currentPhase = Phase.DRIVE;          //keeps track of the current phase the command is in -- START IN DRIVE PHASE
+  boolean finished = false;                  //when finished = true, the command will end
 
   public DriveToVisionTargetStrafing() {
     // Use requires() here to declare subsystem dependencies
@@ -39,68 +38,87 @@ public class DriveToVisionTargetStrafing extends Command {
   // Called just before this Command runs the first time
   @Override
   protected void initialize() {
-    visioninfo = SmartDashboard.getNumberArray("vision/target_info", empty);
-    targetPos = visioninfo[3];
-    angleOffset = visioninfo[4] * (180/Math.PI);
-    finished = false;
-    currentPhase = Phase.DRIVE;
-    SmartDashboard.putString("Thing is going", "yes");
-    targetAngle = Robot.Drivetrain.getyaw() + angleOffset;
+    System.out.println("Switching to DRIVING phase");
+    visionInfo = SmartDashboard.getNumberArray("vision/target_info", empty);
+    previousInfo = visionInfo;
+    distance = visionInfo[3];
+    angle = visionInfo[4] * (180/Math.PI);
+    overallAngle = Robot.Drivetrain.getyaw() + angle;
+  }
+
+  protected boolean isVisionInfoAccurate() {     //returns true for true failure of data and false for true success
+    // if either the current info failed, or the change in angle and distance from the previous info is too great 
+    // (making sure the previous info was also marked by the Odroid as a success), return false
+    if (visionInfo[1] < 0.5 || visionInfo[2] >= 2.5 || (previousInfo[1] > 0.5 && visionInfo[3] - previousInfo[3] < 20.0 && visionInfo[4] - previousInfo[4] < 20.0)) {
+      return false;            //TODO when the finder_id is changed on the odroid to be in order, must update this statement
+    }
+    return true;
   }
 
   // Called repeatedly when this Command is scheduled to run
   @Override
   protected void execute() {
-    visioninfo = SmartDashboard.getNumberArray("vision/target_info", empty);
-    angleOffset = visioninfo[4] * (180/Math.PI);
-    //System.out.println("Angle: " + angleOffset);
+    visionInfo = SmartDashboard.getNumberArray("vision/target_info", empty);  //refetch value
+    distance = visionInfo[3];                                                 //reset distance and angle
+    angle = visionInfo[4] * (180/Math.PI);
     
-    switch (currentPhase){
+    switch (currentPhase) {
       case DRIVE:
-        //System.out.println(visioninfo[3]);
-        if ((visioninfo[3] > RobotMap.AUTO_DRIVE_DISTANCE_THRESHOLD || (Math.abs(visioninfo[3]) < 0.1))){
-          Robot.Drivetrain.alldrive(Robot.Drivetrain.driveSpeedCalc(visioninfo[3]), Math.signum(angleOffset) * Robot.Drivetrain.turnSpeedCalc(angleOffset), 0);
-          System.out.println("DRIVE (" + visioninfo[3] + " in to go)");
+
+        System.out.println("DRIVE -- distance: " + distance + " in , angle: " + angle + " deg , drive speed: " + Robot.Drivetrain.driveSpeedCalc(distance) + " , turn speed: " + Robot.Drivetrain.turnSpeedCalc(angle));
+
+        if (!isVisionInfoAccurate()) break;
+
+        if (distance > RobotMap.AUTO_DRIVE_DISTANCE_THRESHOLD || distance < 0.1 ) { 
+          Robot.Drivetrain.alldrive(Robot.Drivetrain.driveSpeedCalc(distance), Robot.Drivetrain.turnSpeedCalc(angle), 0);
           break;
         }
         currentPhase = Phase.FINAL_FACE_TARGET;
+        System.out.println("Switching to FINAL_FACE_TARGET phase");
         break;
 
       case FINAL_FACE_TARGET:
 
-        double deltaAngle = angleOffset + (visioninfo[5] * (180/Math.PI));
-        System.out.println("deltaAngle: " + deltaAngle);
+        if (!isVisionInfoAccurate()) break;
+
+        double deltaAngle = angle + (visionInfo[5] * (180/Math.PI));
+        //System.out.println("deltaAngle: " + deltaAngle);
         if (Math.abs(deltaAngle) > RobotMap.AUTO_ANGLE_DIFFERENTIAL_THRESHOLD) {
           Robot.Drivetrain.alldrive(0, Math.signum(deltaAngle) /* Robot.Drivetrain.turnSpeedCalc(angleOffset)*/ * 0.5, 0);
           break;
         }
         currentPhase = Phase.STRAFE_TO_ANGLE;
+        System.out.println("Switching to STRAFE_TO_ANGLE phase");
         break;
           
 
       case STRAFE_TO_ANGLE:
-        System.out.println("STRAFE_TO_ANGLE");
-        if (angleOffset > RobotMap.AUTO_TURN_ACCURACY_THRESHOLD && visioninfo[1] > 0.5) {
+
+        if (!isVisionInfoAccurate()) break;
+
+        if (angle > RobotMap.AUTO_TURN_ACCURACY_THRESHOLD && visionInfo[1] > 0.5) {
           Robot.Drivetrain.alldrive(0, 0, 0.5);
-          System.out.println("offset below threshold");
           break;
-        } else if (angleOffset < -RobotMap.AUTO_TURN_ACCURACY_THRESHOLD &&  visioninfo[1] > 0.5) {
+        } else if (angle < -RobotMap.AUTO_TURN_ACCURACY_THRESHOLD &&  visionInfo[1] > 0.5) {
           Robot.Drivetrain.alldrive(0, 0, -0.5);
-          System.out.println("offset above threshold");
           break;
         }
         else {
           finished = true;
+          System.out.println("Switching to FINISH phase");
           break;
         } 
 
       case TURN_TO_ANGLE:
-        System.out.println("TURN_TO_ANGLE");
-        if (Math.abs(angleOffset) > RobotMap.AUTO_TURN_ACCURACY_THRESHOLD) {
-          Robot.Drivetrain.alldrive(0, Math.signum(angleOffset) * Robot.Drivetrain.turnSpeedCalc(angleOffset), 0);
+      
+        if (!isVisionInfoAccurate()) break;
+
+        if (Math.abs(angle) > RobotMap.AUTO_TURN_ACCURACY_THRESHOLD) {
+          Robot.Drivetrain.alldrive(0, Math.signum(angle) * Robot.Drivetrain.turnSpeedCalc(angle), 0);
           break;
         }
         currentPhase = Phase.DRIVE;
+        System.out.println("Switching to DRIVE phase");
         break;
       
       
@@ -109,43 +127,7 @@ public class DriveToVisionTargetStrafing extends Command {
       
     }
 
-    /*visioninfo = SmartDashboard.getNumberArray("vision/target_info", empty);
-    targetPos = visioninfo[3];
-    angleOffset = visioninfo[4] * (180/Math.PI);
-    //targetAngle = Robot.Drivetrain.getyaw() + angleOffset;
-
-    //currentOffset = targetAngle - Robot.Drivetrain.getyaw();
-    
-    System.out.println(currentPhase);
-    System.out.println(currentOffset);
-    
-    switch (currentPhase) {
-    case STRAFE_TO_ANGLE:
-      // if (currentOffset > RobotMap.AUTO_TURN_ACCURACY_THRESHOLD || currentDist <
-      // RobotMap.AUTO_DRIVE_DISTANCE_THRESHOLD){
-      if (angleOffset > -RobotMap.AUTO_TURN_ACCURACY_THRESHOLD) {
-        Robot.Drivetrain.alldrive(0, 0, 0.8);
-        System.out.println("offset below threshold");
-        break;
-      } else if (angleOffset < RobotMap.AUTO_TURN_ACCURACY_THRESHOLD) {
-        Robot.Drivetrain.alldrive(0, 0, -0.8);
-        System.out.println("offset above threshold");
-        break;
-      }
-      currentPhase = Phase.DRIVE;
-      break;
-    case DRIVE:
-      /*if (Robot.Drivetrain.getRobotPosition().distanceTo(targetPos) > RobotMap.AUTO_DRIVE_DISTANCE_THRESHOLD) {
-        Robot.Drivetrain
-            .alldrive(Robot.Drivetrain.driveSpeedCalc(Robot.Drivetrain.getRobotPosition().distanceTo(targetPos)), 0, 0);
-        break;
-      }
-      finished = true;
-      break;
-      default:
-      break;
-    }
-    System.out.println();*/
+    previousInfo = visionInfo;    //reset previousInfo
   }
 
   // Make this return true when this Command no longer needs to run execute()

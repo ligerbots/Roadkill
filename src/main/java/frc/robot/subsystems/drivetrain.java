@@ -45,6 +45,8 @@ public class drivetrain extends Subsystem {
   //boolean centerpresent = (centermaster.getStickyFaults(centermasterfaults) == ErrorCode.OK);
   private double turnOutput;
 
+  private double minCalcMotorSpeed = 0.5;  //used as a default value if speed or angle calc for auto goes too low
+
   public drivetrain() {
     navx = new AHRS(Port.kMXP, (byte) 200);
     leftmaster = new WPI_TalonSRX(RobotMap.ct_left_1);
@@ -114,16 +116,23 @@ public class drivetrain extends Subsystem {
     }
   }*/
 
-  public double turnSpeedCalc (double error) {
-    if (error > 30) {return 0.8;}
+  public double turnSpeedCalc(double error) {
+    if (error / 30.0 <= minCalcMotorSpeed) return minCalcMotorSpeed;  //have 30 degrees be the cutoff point
+    return error / 30.0;
+
+    /*if (error > 30) {return 0.8;}
     else if (error > 10) {return 0.8;}
-    return 0.8;
+    return 0.8;*/
   }
 
-  public double driveSpeedCalc (double error) {
-    if (error > 24) {return 0.8;}
+  public double driveSpeedCalc(double error) {
+    final double distance = error - RobotMap.AUTO_DRIVE_DISTANCE_THRESHOLD;
+    if (distance / 24.0 <= minCalcMotorSpeed) return minCalcMotorSpeed;  //have 24 inches be the cutoff point
+    return error / 24.0;
+
+    /*if (error > 24) {return 0.8;}
     else if (error > 12) {return 0.6;}
-    return 0.55;
+    return 0.55;*/
   }
 
   public FieldPosition getRobotPosition () {

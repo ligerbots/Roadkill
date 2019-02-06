@@ -115,15 +115,15 @@ public class drivetrain extends Subsystem {
   }*/
 
   public double turnSpeedCalc (double error) {
-    if (error > 30) {return 1;}
-    else if (error > 10) {return 0.3;}
-    return 0.2;
+    if (error > 30) {return 0.8;}
+    else if (error > 10) {return 0.8;}
+    return 0.8;
   }
 
   public double driveSpeedCalc (double error) {
-    if (error > 24) {return 1;}
-    else if (error > 12) {return 0.7;}
-    return 0.45;
+    if (error > 24) {return 0.8;}
+    else if (error > 12) {return 0.6;}
+    return 0.55;
   }
 
   public FieldPosition getRobotPosition () {

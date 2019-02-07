@@ -47,5 +47,5 @@ public class RobotMap {
 
   public static final double CENTER_WHEEL_DIAMETER = 4.0;
 
-  public static final double AUTO_ANGLE_DIFFERENTIAL_THRESHOLD = 10; // threshold of difference between angle 1 and angle 2
+  public static final double AUTO_ANGLE_DIFFERENTIAL_THRESHOLD = 0.5; // threshold of difference between angle 1 and angle 2
 }

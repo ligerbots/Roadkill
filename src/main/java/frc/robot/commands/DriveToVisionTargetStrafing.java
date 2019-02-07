@@ -27,7 +27,7 @@ public class DriveToVisionTargetStrafing extends Command {
   double angle;                              //angle from robot to target in degrees (NT is initially in radians)
   double overallAngle;                       //angle to the target in terms of the robot's yaw
   Phase currentPhase = Phase.DRIVE;          //keeps track of the current phase the command is in -- START IN DRIVE PHASE
-  boolean finished = false;                  //when finished = true, the command will end
+  boolean finished;
 
   public DriveToVisionTargetStrafing() {
     // Use requires() here to declare subsystem dependencies
@@ -44,6 +44,9 @@ public class DriveToVisionTargetStrafing extends Command {
     distance = visionInfo[3];
     angle = visionInfo[4] * (180/Math.PI);
     overallAngle = Robot.Drivetrain.getyaw() + angle;
+    finished = false;                  //when finished = true, the command will end
+
+
   }
 
   protected boolean isVisionInfoAccurate() {     //returns true for true failure of data and false for true success
@@ -65,12 +68,12 @@ public class DriveToVisionTargetStrafing extends Command {
     switch (currentPhase) {
       case DRIVE:
 
-        System.out.println("DRIVE -- distance: " + distance + " in , angle: " + angle + " deg , drive speed: " + Robot.Drivetrain.driveSpeedCalc(distance) + " , turn speed: " + Robot.Drivetrain.turnSpeedCalc(angle));
+        //if (!isVisionInfoAccurate()) break;
 
-        if (!isVisionInfoAccurate()) break;
+        System.out.println("DRIVE -- distance: " + distance + " in , angle: " + angle + " deg , drive speed: " + Robot.Drivetrain.driveSpeedCalc(distance) + " , turn speed: " + Robot.Drivetrain.turnSpeedCalc(angle));
+        Robot.Drivetrain.alldrive(Robot.Drivetrain.driveSpeedCalc(distance), Math.signum(angle)*Robot.Drivetrain.turnSpeedCalc(angle), 0);
 
         if (distance > RobotMap.AUTO_DRIVE_DISTANCE_THRESHOLD || distance < 0.1 ) { 
-          Robot.Drivetrain.alldrive(Robot.Drivetrain.driveSpeedCalc(distance), Robot.Drivetrain.turnSpeedCalc(angle), 0);
           break;
         }
         currentPhase = Phase.FINAL_FACE_TARGET;
@@ -79,10 +82,10 @@ public class DriveToVisionTargetStrafing extends Command {
 
       case FINAL_FACE_TARGET:
 
-        if (!isVisionInfoAccurate()) break;
+        //if (!isVisionInfoAccurate()) break;
 
         double deltaAngle = angle + (visionInfo[5] * (180/Math.PI));
-        //System.out.println("deltaAngle: " + deltaAngle);
+        System.out.println("deltaAngle: " + deltaAngle);
         if (Math.abs(deltaAngle) > RobotMap.AUTO_ANGLE_DIFFERENTIAL_THRESHOLD) {
           Robot.Drivetrain.alldrive(0, Math.signum(deltaAngle) /* Robot.Drivetrain.turnSpeedCalc(angleOffset)*/ * 0.5, 0);
           break;
@@ -94,7 +97,7 @@ public class DriveToVisionTargetStrafing extends Command {
 
       case STRAFE_TO_ANGLE:
 
-        if (!isVisionInfoAccurate()) break;
+       // if (!isVisionInfoAccurate()) break;
 
         if (angle > RobotMap.AUTO_TURN_ACCURACY_THRESHOLD && visionInfo[1] > 0.5) {
           Robot.Drivetrain.alldrive(0, 0, 0.5);
@@ -139,6 +142,7 @@ public class DriveToVisionTargetStrafing extends Command {
   // Called once after isFinished returns true
   @Override
   protected void end() {
+    System.out.println("\n\n\n\n\n\n\n\n\n1337");
   }
 
   // Called when another command which requires one or more of the same

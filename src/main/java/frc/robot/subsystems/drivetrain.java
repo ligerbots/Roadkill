@@ -45,7 +45,7 @@ public class drivetrain extends Subsystem {
   //boolean centerpresent = (centermaster.getStickyFaults(centermasterfaults) == ErrorCode.OK);
   private double turnOutput;
 
-  private double minCalcMotorSpeed = 0.35;  //used as a default value if speed or angle calc for auto goes too low
+  private double minCalcMotorSpeed = 0.65;  //used as a default value if speed or angle calc for auto goes too low
 
   public drivetrain() {
     navx = new AHRS(Port.kMXP, (byte) 200);
@@ -117,8 +117,8 @@ public class drivetrain extends Subsystem {
   }*/
 
   public double turnSpeedCalc(double error) {//30
-    if (error / 120.0 <= minCalcMotorSpeed) return minCalcMotorSpeed;  //have 30 degrees be the cutoff point
-    return error / 120.0;
+    if (error / 80.0 <= minCalcMotorSpeed) return minCalcMotorSpeed;  //have 30 degrees be the cutoff point
+    return error / 80.0;
 
     /*if (error > 30) {return 0.8;}
     else if (error > 10) {return 0.8;}
@@ -126,13 +126,19 @@ public class drivetrain extends Subsystem {
   }
 
   public double driveSpeedCalc(double error) {//24
-    //final double distance = error - RobotMap.AUTO_DRIVE_DISTANCE_THRESHOLD;
-    //if (distance / 70.0 <= minCalcMotorSpeed) return minCalcMotorSpeed;  //have 24 inches be the cutoff point
-    //return error / 70.0;
+    final double distance = error - RobotMap.AUTO_DRIVE_DISTANCE_THRESHOLD;
+    if (distance / 85.0 <= minCalcMotorSpeed) return minCalcMotorSpeed;  //have 24 inches be the cutoff point
+    return error / 85.0;
 
-    if (error > 24) {return 0.6;}
-    else if (error > 12) {return 0.5;}
-    return 0.35;
+    // if (error > 24) {return 0.9;}
+    // else if (error > 12) {return 0.5;}
+    // return 0.35;
+  }
+
+  public double strafeSpeedCalc (double error) {
+    if (error > 20) {return 1.0;}
+    else if (error > 15) {return 0.5;}
+    return 0.4;
   }
 
   public FieldPosition getRobotPosition () {

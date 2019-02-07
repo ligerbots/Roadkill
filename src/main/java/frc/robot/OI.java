@@ -11,6 +11,7 @@ import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.buttons.JoystickButton;
 import frc.robot.commands.DriveToVisionTargetStrafing;
+import frc.robot.commands.FastDriveToVisionTarget;
 import frc.robot.commands.fieldcentrictogglecommand;
 import frc.robot.commands.intaketogglecommand;
 import frc.robot.commands.kickertogglecommand;
@@ -62,7 +63,7 @@ public class OI {
     xBoxA.whenPressed(new kickertogglecommand());
 
     JoystickButton xBoxB = new JoystickButton(xbox, 2);
-    xBoxB.whenPressed(new DriveToVisionTargetStrafing());
+    xBoxB.whenPressed(new FastDriveToVisionTarget());
 
   }
 

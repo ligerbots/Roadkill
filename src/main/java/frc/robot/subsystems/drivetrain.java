@@ -45,8 +45,6 @@ public class drivetrain extends Subsystem {
   //boolean centerpresent = (centermaster.getStickyFaults(centermasterfaults) == ErrorCode.OK);
   private double turnOutput;
 
-  private double minCalcMotorSpeed = 0.65;  //used as a default value if speed or angle calc for auto goes too low
-
   public drivetrain() {
     navx = new AHRS(Port.kMXP, (byte) 200);
     leftmaster = new WPI_TalonSRX(RobotMap.ct_left_1);
@@ -116,19 +114,21 @@ public class drivetrain extends Subsystem {
     }
   }*/
 
-  public double turnSpeedCalc(double error) {//30
-    if (error / 80.0 <= minCalcMotorSpeed) return minCalcMotorSpeed;  //have 30 degrees be the cutoff point
-    return error / 80.0;
+  public double turnSpeedCalc(double error) {
+    //if (error <= 5.0 && error >= -5.0) {return 0.0;}
+    if (error / 90.0 <= 0.4) return 0.4 * Math.signum(error);  //have 30 degrees be the cutoff point
+    return error / 90.0 * Math.signum(error);
 
     /*if (error > 30) {return 0.8;}
     else if (error > 10) {return 0.8;}
     return 0.8;*/
   }
 
-  public double driveSpeedCalc(double error) {//24
-    final double distance = error - RobotMap.AUTO_DRIVE_DISTANCE_THRESHOLD;
-    if (distance / 85.0 <= minCalcMotorSpeed) return minCalcMotorSpeed;  //have 24 inches be the cutoff point
-    return error / 85.0;
+  public double driveSpeedCalc(double error) {
+    final double distance = error;
+    if (distance <= 40) {return 0.0;}
+    else if (distance / 85.0 <= 0.4) return 0.4 * Math.signum(error);  //have 24 inches be the cutoff point
+    return error / 85.0 * Math.signum(error); //shouldn't need signum, but just in case we do ever use (-) numbers...
 
     // if (error > 24) {return 0.9;}
     // else if (error > 12) {return 0.5;}
@@ -136,9 +136,10 @@ public class drivetrain extends Subsystem {
   }
 
   public double strafeSpeedCalc (double error) {
-    if (error > 20) {return 1.0;}
-    else if (error > 15) {return 0.5;}
-    return 0.4;
+    //if (error <= 5.0 && error >= -5.0) {return 0.0;}
+    if (error > 25) {return 0.9 * Math.signum(error);}
+    else if (error > 15) {return 0.45 * Math.signum(error);}
+    return 0.4 * Math.signum(error);
   }
 
   public FieldPosition getRobotPosition () {

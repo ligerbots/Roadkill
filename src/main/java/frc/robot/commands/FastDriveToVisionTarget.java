@@ -30,6 +30,7 @@ public class FastDriveToVisionTarget extends Command {
   // Called just before this Command runs the first time
   @Override
   protected void initialize() {
+    SmartDashboard.putString("vision/active_mode", "rrtarget");
   }
 
   // Called repeatedly when this Command is scheduled to run
@@ -40,8 +41,7 @@ public class FastDriveToVisionTarget extends Command {
     angle = visionInfo[4] * (180/Math.PI);
     deltaAngle = angle + (visionInfo[5] * (180/Math.PI));
 
-
-    Robot.Drivetrain.alldrive(Robot.Drivetrain.driveSpeedCalc(distance), Robot.Drivetrain.turnSpeedCalc(deltaAngle) * Math.signum(deltaAngle), Math.signum(angle) * Robot.Drivetrain.strafeSpeedCalc(angle));
+    Robot.Drivetrain.alldrive(Robot.Drivetrain.driveSpeedCalc(distance), Robot.Drivetrain.turnSpeedCalc(deltaAngle), Robot.Drivetrain.strafeSpeedCalc(angle));
   }
 
   // Make this return true when this Command no longer needs to run execute()
